@@ -1,18 +1,21 @@
 """ESPN Fantasy Hockey ranking source.
 
-ESPN's public fantasy API is undocumented and can change without notice.  The
-article rankings are capped at 250, so this module uses ESPN's player pool,
-where ESPN stores the actual standard-game draft rank for the full ranked pool.
+ESPN's public fantasy API is undocumented and can change without notice.
+The article rankings are capped at 250; this module pulls the full standard-game
+draft ranks that power the actual draft board (practice drafts, live drafts, etc.).
 """
 
 from __future__ import annotations
 
 from datetime import date, datetime
 from typing import Any
+import json
 import requests
 
-ESPN_BASE = "https://lm-api-reads.fantasy.espn.com/apis/v3/games/fhl/seasons/2026"
-ESPN_PLAYERS_URL = f"{ESPN_BASE}/players"
+# 2026-27 season is labeled 2027 in the Fantasy API
+SEASON = 2027
+ESPN_BASE = f"https://lm-api-reads.fantasy.espn.com/apis/v3/games/fhl/seasons/{SEASON}"
+ESPN_LEAGUEDEFAULTS_URL = f"{ESPN_BASE}/segments/0/leaguedefaults/1"
 ESPN_ATHLETES_URL = "https://sports.core.api.espn.com/v3/sports/hockey/nhl/athletes"
 
 HEADERS = {
@@ -20,18 +23,14 @@ HEADERS = {
     "User-Agent": "Mozilla/5.0 (Fantasy Hockey Draft Board)",
 }
 
-# ESPN's player endpoint normally needs this filter to return the complete
-# player pool rather than the small browser default.
-PLAYER_FILTER = {
-    "filterActive": {"value": True},
-    "limit": 10000,
-    "offset": 0,
-}
 
-
-def _request_json(url: str, *, params: dict[str, Any] | None = None,
-                  headers: dict[str, str] | None = None,
-                  timeout: int = 30) -> Any:
+def _request_json(
+    url: str,
+    *,
+    params: dict[str, Any] | None = None,
+    headers: dict[str, str] | None = None,
+    timeout: int = 30,
+) -> Any:
     h = dict(HEADERS)
     if headers:
         h.update(headers)
@@ -58,7 +57,7 @@ def _standard_rank(player: dict[str, Any]) -> int | None:
             except (TypeError, ValueError):
                 pass
 
-    # Some ESPN responses expose a rankings array rather than the map.
+    # Fallback for older/alternate response shapes
     rankings = player.get("rankings")
     if isinstance(rankings, dict):
         for values in rankings.values():
@@ -84,21 +83,39 @@ def _date_age(dob: str | None, as_of: date | None = None) -> int | None:
         except ValueError:
             return None
     today = as_of or date.today()
-    return today.year - birthday.year - ((today.month, today.day) < (birthday.month, birthday.day))
-
-
-def fetch_espn_player_pool() -> list[dict[str, Any]]:
-    """Return ESPN-ranked active players, including players ranked below 250."""
-    data = _request_json(
-        ESPN_PLAYERS_URL,
-        params={"view": "players_wl", "scoringPeriodId": 0},
-        headers={"X-Fantasy-Filter": __import__("json").dumps({"players": PLAYER_FILTER})},
+    return today.year - birthday.year - (
+        (today.month, today.day) < (birthday.month, birthday.day)
     )
+
+
+def fetch_espn_player_pool(limit: int = 500) -> list[dict[str, Any]]:
+    """Return ESPN-ranked active players (the ranks used in real/practice drafts).
+
+    Uses the leaguedefaults endpoint + sortDraftRanks filter, which returns the
+    same ordering that appears in the ESPN Fantasy draft board.
+    """
+    fantasy_filter = {
+        "players": {
+            "limit": limit,
+            "sortDraftRanks": {
+                "sortPriority": 100,
+                "sortAsc": True,
+                "value": "STANDARD",
+            },
+        }
+    }
+
+    data = _request_json(
+        ESPN_LEAGUEDEFAULTS_URL,
+        params={"view": "kona_player_info"},
+        headers={"X-Fantasy-Filter": json.dumps(fantasy_filter)},
+    )
+
     rows = data.get("players", data) if isinstance(data, dict) else data
     if not isinstance(rows, list):
         raise ValueError("Unexpected ESPN player response shape")
 
-    output = []
+    output: list[dict[str, Any]] = []
     for row in rows:
         if not isinstance(row, dict):
             continue
@@ -107,17 +124,17 @@ def fetch_espn_player_pool() -> list[dict[str, Any]]:
         name = player.get("fullName")
         if not name or rank is None:
             continue
+
         output.append({
             "Player": str(name),
             "ESPN Ranking": rank,
             "ESPN ID": player.get("id", row.get("id")),
             "Age": player.get("age") or _date_age(player.get("dateOfBirth")),
-            "Status": row.get("status") or player.get("status"),
+            "Status": row.get("status") or player.get("status") or player.get("injuryStatus"),
             "Default Position ID": player.get("defaultPositionId"),
         })
 
-    # ESPN IDs/ranks should be unique. Keep the best-ranked record if a
-    # duplicate is returned by the endpoint.
+    # Deduplicate by name, keeping the best (lowest) rank if any collision occurs
     dedup: dict[str, dict[str, Any]] = {}
     for row in output:
         current = dedup.get(row["Player"])
@@ -151,7 +168,13 @@ def fetch_espn_ages() -> dict[int, int]:
 
 
 def get_espn_rankings() -> list[dict[str, Any]]:
-    """Fetch the current ESPN ranked player pool with age metadata."""
+    """Fetch the current ESPN ranked player pool with age metadata.
+
+    Output format is identical to the previous implementation:
+        [{"Player": str, "ESPN Ranking": int, "ESPN ID": ..., "Age": ...,
+          "Status": ..., "Default Position ID": ...}, ...]
+    sorted by ESPN Ranking ascending.
+    """
     players = fetch_espn_player_pool()
     try:
         ages = fetch_espn_ages()
@@ -170,5 +193,5 @@ def get_espn_rankings() -> list[dict[str, Any]]:
 if __name__ == "__main__":
     rows = get_espn_rankings()
     print(f"Fetched {len(rows):,} ESPN-ranked players")
-    for row in rows[:10]:
+    for row in rows[:15]:
         print(row)
