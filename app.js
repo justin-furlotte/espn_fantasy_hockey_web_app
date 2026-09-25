@@ -1,5 +1,5 @@
 const DATA_URL = "data/app-data.json";
-const ESPN_PLAYERS_URL = "https://lm-api-reads.fantasy.espn.com/apis/v3/games/fhl/seasons/2026/players";
+const ESPN_PLAYERS_URL = "https://lm-api-reads.fantasy.espn.com/apis/v3/games/fhl/seasons/2027/players";
 const ESPN_ATHLETES_URL = "https://sports.core.api.espn.com/v3/sports/hockey/nhl/athletes";
 const EXCLUDED_KEY = "fantasyHockeyExcludedPlayers";
 

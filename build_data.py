@@ -70,7 +70,10 @@ ranked = ranked.sort_values(by="Steal Value", ascending=False, kind="mergesort")
 
 ranked_for_json = ranked[
     ["PPG Ranking", "ESPN Ranking", "Player", "Age", "PPG", "EWMA PPG", "Steal Value"]
-]
+].copy()
+
+# Convert pandas NaN → None so json.dump writes null
+ranked_for_json = ranked_for_json.where(pd.notnull(ranked_for_json), None)
 
 payload = {
     "years": YEARS,
