@@ -7,16 +7,107 @@ editorial article.  The browser can also refresh the same source live.
 
 import json
 from pathlib import Path
-
+from espn_api.hockey import League
 import pandas as pd
-
+import os
+from dotenv import load_dotenv
 from ranking_source import get_espn_rankings
 
-YEARS = list(range(2019, 2027))
+# Load environment variables
+load_dotenv()
+LEAGUE_ID = int(os.getenv("LEAGUE_ID"))
+ESPN_S2 = os.getenv("ESPN_S2")
+SWID = os.getenv("SWID")
+MIN_YEAR = int(os.getenv("MIN_YEAR"))
+MAX_YEAR = int(os.getenv("MAX_YEAR"))
+
+YEARS = list(range(MIN_YEAR, MAX_YEAR))
 ALPHA = 0.75
 BASE = Path(__file__).resolve().parent
 
+
+def calculate_points(player, year: int) -> dict:
+    player_stats = player.stats
+    if f"Total {year}" not in player_stats:
+        return {"Total Points": 0, "PPG": 0, "GP": 0}
+    else:
+        x = player_stats[f"Total {year}"]["total"]
+
+        # League scoring formula
+        if "G" in x:  # Skaters
+            games_played = x["GP"]
+            if games_played == 0:
+                score = 0
+            else:
+                score = 3 * x["G"] + 2 * x["A"] + x["G"] + x["A"] + x["+/-"] + 0.3 * x["PIM"] + x["PPG"] + 0.5 * x["PPA"] + x[
+                    "PPG"] + x["PPA"] + 2 * x["SHG"] + x["SHA"] + x["SHP"] + x["GWG"] + 0.2 * x["SOG"] + 0.3 * x["HIT"] + 0.5 * \
+                        x["BLK"]
+                if "DEF" in x:
+                    score += x["DEF"]
+                if "HAT" in x:
+                    score += 10 * x["HAT"]
+        elif "GS" in x:  # Goalies
+            games_played = x["GS"]
+            if games_played == 0:
+                score = 0
+            else:
+                score = x["GS"] + 5 * x["W"] - 2 * x["L"] - x["GA"] + 0.22 * x["SV"] + 3 * x["SO"] + 2 * x["OTL"]
+        else:
+            raise ValueError(f"Unrecognized player: {player}")
+        if games_played == 0:
+            ppg = 0
+        else:
+            ppg = score / games_played
+        return {"Total Points": score, "PPG": ppg, "GP": games_played}
+
+
+def get_player_stats_single_league(league) -> pd.DataFrame:
+    # Get free agents
+    free_agents = league.free_agents(size=-1)
+
+    # Get rostered players
+    teams = league.teams
+    still_rostered = []
+    for i in range(len(teams)):
+        still_rostered += league.teams[i].roster
+
+    players = free_agents + still_rostered
+    stats = pd.DataFrame(columns=["PPG", "Total Points", "GP", "Position", "Year"])
+    stats.index.name = "Player"
+    year = league.year
+    for player in players:
+        points = calculate_points(player=player, year=year)
+        stats.loc[player.name, "PPG"] = round(points["PPG"], 2)
+        stats.loc[player.name, "Total Points"] = points["Total Points"]
+        stats.loc[player.name, "GP"] = round(points["GP"])
+        stats.loc[player.name, "Year"] = year
+        stats.loc[player.name, "Position"] = player.position
+
+    return stats
+
+
+def get_player_stats(
+        years: list[int],
+        league_id: int = LEAGUE_ID,
+        espn_s2: str = ESPN_S2,
+        swid: str = SWID
+) -> pd.DataFrame:
+    stats = []
+    for year in years:
+        league = League(league_id=league_id, year=year, espn_s2=espn_s2, swid=swid)
+        stats_year = get_player_stats_single_league(league=league)
+        stats.append(stats_year.reset_index())
+    stats = pd.concat(stats)
+    return stats
+
+
+# Build player stats df
+# Takes about 10 seconds using API. For speed, comment this out and just load it as a csv once you've run it once
+stats = get_player_stats(years=YEARS)
+stats.to_csv(BASE / "data/stats.csv", index=False)
 stats = pd.read_csv(BASE / "data/stats.csv")
+
+# Build ESPN ranking data
 stats["Year"] = pd.to_numeric(stats["Year"], errors="coerce").astype("Int64")
 stats["PPG"] = pd.to_numeric(stats["PPG"], errors="coerce").fillna(0.0)
 stats["GP"] = pd.to_numeric(stats["GP"], errors="coerce").fillna(0.0)

@@ -29,7 +29,8 @@ ESPN's Fantasy API is an undocumented internal API and can change without notice
 
 ## Updating the cached data
 
-The Python build step now fetches ESPN rankings and ages automatically:
+The Python build step now fetches ESPN rankings and ages automatically, 
+and computes historical PPG stats for all players:
 
 ```bash
 python -m pip install pandas requests
@@ -40,6 +41,7 @@ It regenerates:
 
 - `data/espn_rankings.csv`
 - `data/app-data.json`
+- `data/stats.csv`
 
 The repository also includes a GitHub Actions workflow at `.github/workflows/update-data.yml`. It can be run manually from **Actions → Refresh ESPN fantasy data → Run workflow**, and it also runs daily.
 
