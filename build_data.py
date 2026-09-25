@@ -72,21 +72,50 @@ ranked_for_json = ranked[
     ["PPG Ranking", "ESPN Ranking", "Player", "Age", "PPG", "EWMA PPG", "Steal Value"]
 ].copy()
 
-# Convert pandas NaN → None so json.dump writes null
-ranked_for_json = ranked_for_json.where(pd.notnull(ranked_for_json), None)
+def _json_safe(v):
+    """Convert pandas/numpy NaN, NaT, inf to None; leave everything else alone."""
+    if v is None:
+        return None
+    try:
+        # catches float nan, numpy nan, pandas NA
+        if pd.isna(v):
+            return None
+    except (TypeError, ValueError):
+        pass
+    # reject inf as well
+    try:
+        if isinstance(v, float) and (v != v or abs(v) == float("inf")):
+            return None
+    except Exception:
+        pass
+    return v
+
+# Apply cell-by-cell so no nan can survive
+records = []
+for row in ranked_for_json.to_dict("records"):
+    clean = {k: _json_safe(v) for k, v in row.items()}
+    # Age should be int or null
+    if clean.get("Age") is not None:
+        try:
+            clean["Age"] = int(clean["Age"])
+        except (TypeError, ValueError):
+            clean["Age"] = None
+    records.append(clean)
 
 payload = {
     "years": YEARS,
     "history": history,
-    "gems": ranked_for_json.to_dict("records"),
+    "gems": records,
     "updated": pd.Timestamp.today().strftime("%Y-%m-%d"),
     "ewmaAlpha": ALPHA,
     "rankingSource": "ESPN Fantasy API (standard draft rank)",
 }
 
-with open(BASE / "data/app-data.json", "w", encoding="utf-8") as f:
-    json.dump(payload, f, separators=(",", ":"))
+out_path = BASE / "data/app-data.json"
+with open(out_path, "w", encoding="utf-8") as f:
+    json.dump(payload, f, separators=(",", ":"), allow_nan=False)
 
 print(f"ESPN rankings: {len(espn_df):,}")
-print(f"Gems/skaters: {len(ranked):,}")
+print(f"Gems/skaters: {len(records):,}")
 print(f"History rows: {len(history):,}")
+print(f"Wrote {out_path}")
