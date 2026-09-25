@@ -145,25 +145,45 @@ def fetch_espn_player_pool(limit: int = 500) -> list[dict[str, Any]]:
 
 
 def fetch_espn_ages() -> dict[int, int]:
-    """Fetch ESPN's current NHL athlete DOB/age data in one request."""
-    data = _request_json(ESPN_ATHLETES_URL, params={"limit": 10000})
-    items = data.get("items", []) if isinstance(data, dict) else []
+    """Fetch ESPN's current NHL athlete DOB/age data (all pages).
+
+    Returns a map of ESPN athlete/player ID → age in years.
+    """
     ages: dict[int, int] = {}
-    for athlete in items:
-        if not isinstance(athlete, dict):
-            continue
-        try:
-            athlete_id = int(athlete["id"])
-        except (KeyError, TypeError, ValueError):
-            continue
-        age = athlete.get("age")
-        if age is None:
-            age = _date_age(athlete.get("dateOfBirth"))
-        if age is not None:
+    page = 1
+    page_count = 1  # updated after first response
+
+    while page <= page_count:
+        data = _request_json(
+            ESPN_ATHLETES_URL,
+            params={"limit": 1000, "page": page},
+        )
+        if not isinstance(data, dict):
+            break
+
+        page_count = int(data.get("pageCount") or 1)
+        items = data.get("items") or []
+
+        for athlete in items:
+            if not isinstance(athlete, dict):
+                continue
+            try:
+                athlete_id = int(athlete["id"])
+            except (KeyError, TypeError, ValueError):
+                continue
+
+            age = athlete.get("age")
+            if age is None:
+                age = _date_age(athlete.get("dateOfBirth"))
+            if age is None:
+                continue
             try:
                 ages[athlete_id] = int(age)
             except (TypeError, ValueError):
                 pass
+
+        page += 1
+
     return ages
 
 
