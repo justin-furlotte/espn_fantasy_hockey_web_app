@@ -17,10 +17,18 @@
       <div>
         <div class="eyebrow">ESPN FANTASY HOCKEY</div>
         <h1>Draft Board</h1>
-        <p class="subtitle">Find undervalued skaters using historical scoring and ESPN's draft rankings.</p>
+        <p class="subtitle">Find undervalued skaters using historical scoring and ESPN's live draft rankings.</p>
       </div>
-      <div class="badge"><span class="dot"></span> 2026–27 draft data</div>
+      <div class="hero-actions">
+        <div class="badge"><span class="dot"></span> 2026–27 draft data</div>
+        <button id="refreshData" class="primary-button" type="button">Refresh ESPN Data</button>
+      </div>
     </header>
+
+    <div class="refresh-row">
+      <span id="refreshStatus" class="refresh-status">Rankings are cached for fast loading. Refresh when you want the latest ESPN board.</span>
+      <span id="dataUpdated" class="micro"></span>
+    </div>
 
     <section class="card player-card">
       <div class="section-heading">
@@ -68,6 +76,19 @@
         <div class="table-count" id="tableCount">Loading…</div>
       </div>
 
+      <div class="draft-controls">
+        <div class="player-picker">
+          <label for="excludePlayerSearch">Remove drafted player</label>
+          <div class="combobox" id="excludeCombobox">
+            <input id="excludePlayerSearch" autocomplete="off" role="combobox"
+                   aria-expanded="false" aria-controls="excludePlayerOptions"
+                   placeholder="Search a player to remove…">
+            <button id="clearExcludePlayer" class="clear" aria-label="Clear player" type="button">×</button>
+            <div id="excludePlayerOptions" class="options" role="listbox"></div>
+          </div>
+        </div>
+      </div>
+
       <div class="table-scroll">
         <table id="gemsTable">
           <thead>
@@ -75,6 +96,7 @@
               <th data-key="PPG Ranking" class="sortable">PPG Ranking <span></span></th>
               <th data-key="ESPN Ranking" class="sortable">ESPN Ranking <span></span></th>
               <th data-key="Player" class="sortable player-col">Player <span></span></th>
+              <th data-key="Age" class="sortable">Age <span></span></th>
               <th data-key="PPG" class="sortable">PPG <span></span></th>
               <th data-key="EWMA PPG" class="sortable">EWMA PPG <span></span></th>
               <th data-key="Steal Value" class="sortable active">Steal Value <span class="arrow">↓</span></th>
@@ -82,6 +104,21 @@
           </thead>
           <tbody id="gemsBody"></tbody>
         </table>
+      </div>
+
+      <div class="excluded-section">
+        <div class="excluded-heading">
+          <div>
+            <div class="eyebrow">DRAFT TRACKER</div>
+            <h2>Excluded Players</h2>
+            <p class="hint">Players removed here stay excluded after a page refresh on this device. Click × to put one back.</p>
+          </div>
+          <div class="excluded-actions">
+            <span id="excludedCount" class="table-count">0 excluded</span>
+            <button id="resetExcluded" class="secondary-button" type="button">Reset</button>
+          </div>
+        </div>
+        <div id="excludedList" class="excluded-list"></div>
       </div>
     </section>
 
@@ -100,7 +137,7 @@
 
     <footer>
       <span>Built from ESPN historical scoring data · EWMA α = 0.75</span>
-      <span>Data cached for fast GitHub Pages hosting</span>
+      <span>ESPN rankings refresh from the live Fantasy API; cached data remains available offline.</span>
     </footer>
   </main>
   <script src="app.js"></script>

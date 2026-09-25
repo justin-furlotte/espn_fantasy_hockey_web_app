@@ -81,3 +81,64 @@ footer { display:flex; justify-content:space-between; gap:20px; padding:8px 4px;
   .projection-wrap { height:300px; }
   th,td { padding-left:12px; padding-right:12px; }
 }
+
+
+.hero-actions { display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:flex-end; }
+.primary-button,.secondary-button {
+  border:1px solid #d9dfeb;
+  border-radius:10px;
+  background:white;
+  color:#34415a;
+  padding:9px 13px;
+  font:600 12px "DM Sans",sans-serif;
+  cursor:pointer;
+  transition:.15s;
+}
+.primary-button { background:var(--accent); border-color:var(--accent); color:white; box-shadow:0 5px 14px rgba(72,103,245,.2); }
+.primary-button:hover { filter:brightness(.97); transform:translateY(-1px); }
+.primary-button:disabled { opacity:.65; cursor:wait; transform:none; }
+.secondary-button:hover { border-color:#b8c2d2; background:#f8f9fc; }
+.secondary-button:disabled { opacity:.45; cursor:not-allowed; }
+.refresh-row { display:flex; justify-content:space-between; gap:16px; align-items:center; margin:-12px 2px 20px; min-height:20px; }
+.refresh-status { color:var(--muted); font-size:11px; }
+.refresh-status.success { color:var(--positive); font-weight:600; }
+.refresh-status.error { color:var(--negative); font-weight:600; }
+.draft-controls { padding:0 26px 18px; }
+.draft-controls .player-picker { margin-top:0; max-width:480px; }
+.excluded-section { border-top:1px solid var(--line); padding:22px 26px 25px; }
+.excluded-heading { display:flex; justify-content:space-between; gap:20px; align-items:flex-start; }
+.excluded-actions { display:flex; align-items:center; gap:8px; }
+.excluded-list { display:flex; flex-wrap:wrap; gap:8px; margin-top:15px; }
+.excluded-player {
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+  background:#f5f6f9;
+  border:1px solid #e2e6ed;
+  border-radius:999px;
+  padding:5px 6px 5px 10px;
+  color:#536073;
+  font-size:12px;
+}
+.excluded-player button {
+  border:0;
+  background:transparent;
+  color:#8a94a3;
+  width:22px;
+  height:22px;
+  border-radius:50%;
+  font-size:17px;
+  line-height:20px;
+  cursor:pointer;
+}
+.excluded-player button:hover { background:#e6e9ef; color:#34415a; }
+.empty-excluded { color:var(--muted); font-size:12px; padding:4px 0; }
+
+@media (max-width:700px) {
+  .hero-actions { justify-content:flex-start; }
+  .refresh-row { flex-direction:column; align-items:flex-start; gap:3px; margin-top:-8px; }
+  .excluded-heading { flex-direction:column; }
+  .excluded-actions { align-self:flex-start; }
+  .draft-controls { padding-left:18px; padding-right:18px; }
+  .excluded-section { padding-left:18px; padding-right:18px; }
+}

@@ -1,15 +1,174 @@
-# This module preserves the ranking source used by the original project.
+"""ESPN Fantasy Hockey ranking source.
 
-def extract_player_names(rankings_text):
-    lines = rankings_text.splitlines()
-    player_names = []
-    for line in lines:
-        period_index = line.find('.')
-        player_name = line[period_index + 2:line.find(',')]
-        player_names.append(player_name)
-    return player_names
+ESPN's public fantasy API is undocumented and can change without notice.  The
+article rankings are capped at 250, so this module uses ESPN's player pool,
+where ESPN stores the actual standard-game draft rank for the full ranked pool.
+"""
 
-def get_espn_rankings() -> list:
-    rankings_text = "1. Nathan MacKinnon, COL (C1)\n2. Connor McDavid, EDM (C2)\n3. Nikita Kucherov, TB (RW1)\n4. Macklin Celebrini, SJ (C3)\n5. Jason Robertson, DAL (LW1)\n6. David Pastrnak, BOS (RW2)\n7. Matt Boldy, MIN (LW2)\n8. Auston Matthews, TOR (C4)\n9. Zach Werenski, CBJ (D1)\n10. Filip Forsberg, NSH (RW3)\n11. Cole Caufield, MTL (RW4)\n12. Brady Tkachuk, FLA (LW3)\n13. Leon Draisaitl, EDM (C5)\n14. Alex DeBrincat, DET (RW5)\n15. Cale Makar, COL (D2)\n16. Evan Bouchard, EDM (D3)\n17. Kyle Connor, WPG (LW4)\n18. Alex Tuch, WSH (RW6)\n19. Tage Thompson, BUF (C6)\n20. Jake Guentzel, TB (LW5)\n21. Kirill Kaprizov, MIN (LW6)\n22. Andrei Vasilevskiy, TB (G1)\n23. Nick Suzuki, MTL (C7)\n24. Jack Eichel, VGK (C8)\n25. Moritz Seider, DET (D4)\n26. Wyatt Johnston, DAL (C9)\n27. Matthew Tkachuk, FLA (LW7)\n28. Mika Zibanejad, NYR (C10)\n29. Artemi Panarin, LA (LW8)\n30. Zach Hyman, EDM (RW7)\n31. Martin Necas, COL (C11)\n32. Noah Dobson, MTL (D5)\n33. William Nylander, TOR (RW8)\n34. Clayton Keller, UTA (RW9)\n35. Adrian Kempe, LA (C12)\n36. Cutter Gauthier, FA (LW9)\n37. Matthew Schaefer, NYI (D6)\n38. Alex Ovechkin, WSH (LW10)\n39. Steven Stamkos, NSH (C13)\n40. Mark Scheifele, WPG (C14)\n41. Tim Stutzle, OTT (C15)\n42. MacKenzie Weegar, UTA (D7)\n43. Roman Josi, NSH (D8)\n44. Sam Reinhart, FLA (RW10)\n45. Jakob Chychrun, WSH (D9)\n46. Dylan Larkin, DET (C16)\n47. Dylan Guenther, UTA (RW11)\n48. Rasmus Dahlin, BUF (D10)\n49. Nico Hischier, NJ (C17)\n50. Scott Wedgewood, COL (G2)\n51. Quinn Hughes, MIN (D11)\n52. Jack Hughes, NJ (C18)\n53. Jake Oettinger, DAL (G3)\n54. Logan Thompson, WSH (G4)\n55. Timo Meier, NJ (LW11)\n56. Sebastian Aho, CAR (C19)\n57. Juraj Slafkovsky, MTL (LW12)\n58. Brandon Hagel, TB (LW13)\n59. Kirill Marchenko, CBJ (LW14)\n60. Seth Jarvis, CAR (RW12)\n61. Vincent Trocheck, UTA (C20)\n62. Elias Pettersson, VAN (C21)\n63. Mitch Marner, VGK (RW13)\n64. Pavel Dorofeyev, NYR (LW15)\n65. John Carlson, TB (D12)\n66. Sidney Crosby, PIT (C22)\n67. Owen Tippett, PHI (RW14)\n68. Drake Batherson, OTT (RW15)\n69. Bo Horvat, NYI (C23)\n70. Dylan Cozens, OTT (C24)\n71. Nick Schmaltz, UTA (RW16)\n72. Karel Vejmelka, UTA (G5)\n73. Brock Nelson, COL (C25)\n74. Sergei Murashov, PIT (G6)\n75. Dylan Holloway, STL (C26)\n76. Mikko Rantanen, DAL (RW17)\n77. John Tavares, TOR (C27)\n78. Bryan Rust, PIT (RW18)\n79. Adam Fantilli, FA (C28)\n80. Aleksander Barkov, FLA (C29)\n81. Nazem Kadri, COL (C30)\n82. Rasmus Andersson, VGK (D13)\n83. Jesper Bratt, NJ (LW16)\n84. Andrei Svechnikov, CAR (RW19)\n85. Nikolaj Ehlers, CAR (LW17)\n86. J.T. Miller, NYR (C31)\n87. Tomas Hertl, VGK (C32)\n88. Ilya Sorokin, NYI (G7)\n89. Patrick Kane, CHI (RW20)\n90. Morgan Geekie, BOS (C33)\n91. Jake Sanderson, OTT (D14)\n92. Darren Raddysh, TOR (D15)\n93. Linus Ullmark, OTT (G8)\n94. Thomas Chabot, OTT (D16)\n95. Igor Shesterkin, NYR (G9)\n96. Lucas Raymond, DET (RW21)\n97. Jeremy Swayman, BOS (G10)\n98. Travis Konecny, PHI (RW22)\n99. Brock Faber, MIN (D17)\n100. Josh Morrissey, WPG (D18)\n101. Brayden Point, TB (C34)\n102. Sam Bennett, FLA (C35)\n103. Erik Karlsson, PIT (D19)\n104. Tom Wilson, WSH (RW23)\n105. Connor Bedard, CHI (C36)\n106. Ryan O'Reilly, NSH (C37)\n107. Joel Hofer, STL (G11)\n108. Mike Matheson, MTL (D20)\n109. Mikhail Sergachev, UTA (D21)\n110. Miro Heiskanen, DAL (D22)\n111. Connor Hellebuyck, WPG (G12)\n112. Jordan Kyrou, WSH (RW24)\n113. Logan Cooley, UTA (C38)\n114. Luke Evangelista, NJ (RW25)\n115. Jake DeBrusk, VAN (LW18)\n116. Bowen Byram, CHI (D23)\n117. John Gibson, DET (G13)\n118. Brandon Bussi, CAR (G14)\n119. Mackenzie Blackwood, COL (G15)\n120. Carter Verhaeghe, FLA (C39)\n121. Matt Duchene, DAL (C40)\n122. Lane Hutson, MTL (D24)\n123. Ukko-Pekka Luukkonen, BUF (G16)\n124. Beckett Sennecke, ANA (RW26)\n125. Roope Hintz, DAL (C41)\n126. Jacob Trouba, SJ (D25)\n127. Jackson LaCombe, ANA (D26)\n128. Carter Hart, VGK (G17)\n129. Rickard Rakell, PIT (RW27)\n130. Darcy Kuemper, LA (G18)\n131. Jared McCann, SEA (LW19)\n132. Adam Fox, NYR (D27)\n133. Leo Carlsson, ANA (C42)\n134. Dan Vladar, PHI (G19)\n135. Brad Marchand, FLA (LW20)\n136. Gabriel Vilardi, WPG (C43)\n137. Matvei Michkov, PHI (RW28)\n138. Joel Eriksson Ek, MIN (C44)\n139. Mark Stone, VGK (RW29)\n140. Jakub Dobes, MTL (G20)\n141. Brock Boeser, VAN (RW30)\n142. Filip Gustavsson, MIN (G21)\n143. Dylan Strome, WSH (C45)\n144. Charlie McAvoy, BOS (D28)\n145. Mathew Barzal, NYI (C46)\n146. Jet Greaves, CBJ (G22)\n147. Jesper Wallstedt, MIN (G23)\n148. Brandt Clarke, LA (D29)\n149. Kevin Fiala, LA (LW21)\n150. Juuse Saros, NSH (G24)\n151. Alex Laferriere, LA (RW31)\n152. Darnell Nurse, SJ (D30)\n153. Blake Coleman, MIN (C47)\n154. Mikael Granlund, ANA (C48)\n155. Morgan Rielly, TOR (D31)\n156. Spencer Knight, CHI (G25)\n157. Alexis Lafreniere, NYR (LW22)\n158. Quinton Byfield, LA (C49)\n159. Colton Parayko, STL (D32)\n160. Will Cuylle, NYR (LW23)\n161. Evgeni Malkin, PIT (C50)\n162. Valeri Nichushkin, CBJ (LW24)\n163. Tyler Toffoli, SJ (RW32)\n164. Alex Lyon, BUF (G26)\n165. Sergei Bobrovsky, TOR (G27)\n166. Justin Faulk, DET (D33)\n167. Tyler Bertuzzi, CHI (LW25)\n168. Ryan Hartman, MIN (RW33)\n169. Matthew Knies, TOR (LW26)\n170. Vince Dunn, SEA (D34)\n171. Anders Lee, UTA (LW27)\n172. Noah Hanifin, VGK (D35)\n173. Jonathan Marchessault, NSH (LW28)\n174. Filip Hronek, VAN (D36)\n175. Sean Walker, CAR (D37)\n176. William Eklund, OTT (LW29)\n177. Charlie Coyle, CBJ (C51)\n178. Shayne Gostisbehere, CAR (D38)\n179. Brandon Montour, SEA (D39)\n180. Anton Forsberg, LA (G28)\n181. Dougie Hamilton, NJ (D40)\n182. Victor Hedman, TB (D41)\n183. Eeli Tolvanen, NYR (LW30)\n184. Matty Beniers, SEA (C52)\n185. Pavel Zacha, BOS (C53)\n186. Joey Daccord, SEA (G29)\n187. Thomas Harley, DAL (D42)\n188. Kiefer Sherwood, SJ (LW31)\n189. Ryan Nugent-Hopkins, EDM (C54)\n190. Matt Coronato, CGY (LW32)\n191. Bobby McMann, SEA (C55)\n192. Robert Thomas, STL (C56)\n193. Dustin Wolf, CGY (G30)\n194. Travis Sanheim, PHI (D43)\n195. Jackson Blake, CAR (RW34)\n196. Marco Rossi, VAN (C57)\n197. Chris Kreider, MTL (LW33)\n198. Pavel Buchnevich, STL (LW34)\n199. Jake Allen, NJ (G31)\n200. Jordan Eberle, SEA (RW35)\n201. Oliver Bjorkstrand, NYR (RW36)\n202. Elias Lindholm, BOS (C58)\n203. Ivan Provorov, CBJ (D44)\n204. Maxim Tsyplakov, CGY (RW37)\n205. Gavin McKenna, TOR (LW35)\n206. Brent Burns, COL (D45)\n207. Kevin Lankinen, VAN (G32)\n208. Trevor Zegras, PHI (C59)\n209. Lawson Crouse, UTA (LW36)\n210. Mats Zuccarello, LA (RW38)\n211. JJ Peterka, BOS (RW39)\n212. Jacob Markstrom, FLA (G33)\n213. Brayden Schenn, NYI (C60)\n214. Will Smith, SJ (C61)\n215. Trevor Moore, LA (LW37)\n216. Joseph Woll, PHI (G34)\n217. Mattias Ekholm, EDM (D46)\n218. Esa Lindell, DAL (D47)\n219. Troy Terry, ANA (RW40)\n220. Aliaksei Protas, WSH (C62)\n221. Kyle Palmieri, NYI (RW41)\n222. Yegor Sharangovich, CGY (LW38)\n223. Anthony Mantha, NJ (RW42)\n224. Anton Lundell, FLA (C63)\n225. Kris Letang, PIT (D48)\n226. Ivan Barbashev, VGK (LW39)\n227. Frank Nazar, CHI (C64)\n228. Jack Quinn, BUF (C65)\n229. Fabian Zetterlund, OTT (LW40)\n230. Anthony Cirelli, TB (C66)\n231. Brady Skjei, NSH (D49)\n232. Shane Pinto, OTT (C67)\n233. Mattias Samuelsson, BUF (D50)\n234. Jimmy Snuggerud, STL (RW43)\n235. Vladimir Tarasenko, FA (RW44)\n236. Viktor Arvidsson, DET (LW41)\n237. Claude Giroux, OTT (C68)\n238. Morgan Frost, CGY (C69)\n239. Alexander Wennberg, SJ (C70)\n240. Joel Farabee, CGY (LW42)\n241. Alexander Nikishin, CAR (D51)\n242. Devon Toews, COL (D52)\n243. Mikael Backlund, CGY (C71)\n244. Ryan Donato, CHI (C72)\n245. Evander Kane, FA (LW43)\n246. Vladislav Gavrikov, NYR (D53)\n247. Mason McTavish, STL (C73)\n248. Connor McMichael, STL (C74)\n249. Tristan Jarry, EDM (G35)\n250. Sean Monahan, CBJ (C75)"
-    player_names = extract_player_names(rankings_text)
-    return player_names
+from __future__ import annotations
+
+from datetime import date, datetime
+from typing import Any
+import requests
+
+ESPN_BASE = "https://lm-api-reads.fantasy.espn.com/apis/v3/games/fhl/seasons/2026"
+ESPN_PLAYERS_URL = f"{ESPN_BASE}/players"
+ESPN_ATHLETES_URL = "https://sports.core.api.espn.com/v3/sports/hockey/nhl/athletes"
+
+HEADERS = {
+    "Accept": "application/json, text/plain, */*",
+    "User-Agent": "Mozilla/5.0 (Fantasy Hockey Draft Board)",
+}
+
+# ESPN's player endpoint normally needs this filter to return the complete
+# player pool rather than the small browser default.
+PLAYER_FILTER = {
+    "filterActive": {"value": True},
+    "limit": 10000,
+    "offset": 0,
+}
+
+
+def _request_json(url: str, *, params: dict[str, Any] | None = None,
+                  headers: dict[str, str] | None = None,
+                  timeout: int = 30) -> Any:
+    h = dict(HEADERS)
+    if headers:
+        h.update(headers)
+    response = requests.get(url, params=params, headers=h, timeout=timeout)
+    response.raise_for_status()
+    return response.json()
+
+
+def _player_object(row: dict[str, Any]) -> dict[str, Any]:
+    """Normalize the two common ESPN response shapes."""
+    player = row.get("player")
+    return player if isinstance(player, dict) else row
+
+
+def _standard_rank(player: dict[str, Any]) -> int | None:
+    ranks = player.get("draftRanksByRankType") or {}
+    standard = ranks.get("STANDARD") if isinstance(ranks, dict) else None
+    if isinstance(standard, dict):
+        rank = standard.get("rank")
+        if rank is not None:
+            try:
+                rank = int(rank)
+                return rank if rank > 0 else None
+            except (TypeError, ValueError):
+                pass
+
+    # Some ESPN responses expose a rankings array rather than the map.
+    rankings = player.get("rankings")
+    if isinstance(rankings, dict):
+        for values in rankings.values():
+            if isinstance(values, list):
+                for item in values:
+                    if isinstance(item, dict) and str(item.get("rankType", "")).upper() == "STANDARD":
+                        try:
+                            rank = int(item.get("rank"))
+                            return rank if rank > 0 else None
+                        except (TypeError, ValueError):
+                            pass
+    return None
+
+
+def _date_age(dob: str | None, as_of: date | None = None) -> int | None:
+    if not dob:
+        return None
+    try:
+        birthday = datetime.fromisoformat(dob.replace("Z", "+00:00")).date()
+    except ValueError:
+        try:
+            birthday = date.fromisoformat(dob[:10])
+        except ValueError:
+            return None
+    today = as_of or date.today()
+    return today.year - birthday.year - ((today.month, today.day) < (birthday.month, birthday.day))
+
+
+def fetch_espn_player_pool() -> list[dict[str, Any]]:
+    """Return ESPN-ranked active players, including players ranked below 250."""
+    data = _request_json(
+        ESPN_PLAYERS_URL,
+        params={"view": "players_wl", "scoringPeriodId": 0},
+        headers={"X-Fantasy-Filter": __import__("json").dumps({"players": PLAYER_FILTER})},
+    )
+    rows = data.get("players", data) if isinstance(data, dict) else data
+    if not isinstance(rows, list):
+        raise ValueError("Unexpected ESPN player response shape")
+
+    output = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        player = _player_object(row)
+        rank = _standard_rank(player)
+        name = player.get("fullName")
+        if not name or rank is None:
+            continue
+        output.append({
+            "Player": str(name),
+            "ESPN Ranking": rank,
+            "ESPN ID": player.get("id", row.get("id")),
+            "Age": player.get("age") or _date_age(player.get("dateOfBirth")),
+            "Status": row.get("status") or player.get("status"),
+            "Default Position ID": player.get("defaultPositionId"),
+        })
+
+    # ESPN IDs/ranks should be unique. Keep the best-ranked record if a
+    # duplicate is returned by the endpoint.
+    dedup: dict[str, dict[str, Any]] = {}
+    for row in output:
+        current = dedup.get(row["Player"])
+        if current is None or row["ESPN Ranking"] < current["ESPN Ranking"]:
+            dedup[row["Player"]] = row
+
+    return sorted(dedup.values(), key=lambda x: (x["ESPN Ranking"], x["Player"]))
+
+
+def fetch_espn_ages() -> dict[int, int]:
+    """Fetch ESPN's current NHL athlete DOB/age data in one request."""
+    data = _request_json(ESPN_ATHLETES_URL, params={"limit": 10000})
+    items = data.get("items", []) if isinstance(data, dict) else []
+    ages: dict[int, int] = {}
+    for athlete in items:
+        if not isinstance(athlete, dict):
+            continue
+        try:
+            athlete_id = int(athlete["id"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        age = athlete.get("age")
+        if age is None:
+            age = _date_age(athlete.get("dateOfBirth"))
+        if age is not None:
+            try:
+                ages[athlete_id] = int(age)
+            except (TypeError, ValueError):
+                pass
+    return ages
+
+
+def get_espn_rankings() -> list[dict[str, Any]]:
+    """Fetch the current ESPN ranked player pool with age metadata."""
+    players = fetch_espn_player_pool()
+    try:
+        ages = fetch_espn_ages()
+    except requests.RequestException:
+        ages = {}
+
+    for player in players:
+        if player["Age"] is None and player.get("ESPN ID") is not None:
+            try:
+                player["Age"] = ages.get(int(player["ESPN ID"]))
+            except (TypeError, ValueError):
+                pass
+    return players
+
+
+if __name__ == "__main__":
+    rows = get_espn_rankings()
+    print(f"Fetched {len(rows):,} ESPN-ranked players")
+    for row in rows[:10]:
+        print(row)
