@@ -73,7 +73,17 @@
           <h2>Gems</h2>
           <p class="hint">Steal Value = ESPN Rank − PPG Rank. Positive numbers mean the player is ranked later by ESPN than by PPG.</p>
         </div>
-        <div class="table-count" id="tableCount">Loading…</div>
+        <div class="table-heading-actions">
+          <label class="position-filter" for="positionFilter">
+            <span>Position</span>
+            <select id="positionFilter" aria-label="Filter by position">
+              <option value="All" selected>All</option>
+              <option value="F">F</option>
+              <option value="D">D</option>
+            </select>
+          </label>
+          <div class="table-count" id="tableCount">Loading…</div>
+        </div>
       </div>
 
       <div class="draft-controls">
@@ -96,6 +106,7 @@
               <th data-key="PPG Ranking" class="sortable">PPG Ranking <span></span></th>
               <th data-key="ESPN Ranking" class="sortable">ESPN Ranking <span></span></th>
               <th data-key="Player" class="sortable player-col">Player <span></span></th>
+              <th data-key="Position" class="sortable">Pos <span></span></th>
               <th data-key="Age" class="sortable">Age <span></span></th>
               <th data-key="PPG" class="sortable">PPG <span></span></th>
               <th data-key="EWMA PPG" class="sortable">EWMA PPG <span></span></th>

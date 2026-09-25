@@ -9,6 +9,7 @@ let projectionChart;
 let selectedPlayer = "David Pastrnak";
 let sortKey = "Steal Value";
 let sortDirection = "desc";
+let positionFilter = "All";
 let excludedPlayers = new Set(JSON.parse(localStorage.getItem(EXCLUDED_KEY) || "[]"));
 
 const $ = (id) => document.getElementById(id);
@@ -146,16 +147,24 @@ function escapeHtml(s) {
 
 function compare(a,b,key) {
   let av=a[key], bv=b[key];
-  if (key === "Player") return String(av).localeCompare(String(bv));
+  if (key === "Player" || key === "Position") return String(av || "").localeCompare(String(bv || ""));
   av=Number(av); bv=Number(bv);
   if (Number.isNaN(av)) av = -Infinity;
   if (Number.isNaN(bv)) bv = -Infinity;
   return av-bv;
 }
 
+function positionFromId(id) {
+  const n = Number(id);
+  if (n === 4) return "D";
+  if (n === 1 || n === 2 || n === 3) return "F";
+  return "F";
+}
+
 function renderGems() {
   const rows=[...appData.gems]
     .filter(r => !excludedPlayers.has(r.Player))
+    .filter(r => positionFilter === "All" || r.Position === positionFilter)
     .sort((a,b)=>{
       const c=compare(a,b,sortKey);
       return c === 0 ? String(a.Player).localeCompare(String(b.Player)) : (sortDirection==="asc"?c:-c);
@@ -165,10 +174,12 @@ function renderGems() {
     const sv=Number(r["Steal Value"]);
     const cls=sv>0?"steal-positive":sv<0?"steal-negative":"";
     const age = Number.isFinite(Number(r.Age)) ? Number(r.Age) : "—";
+    const pos = r.Position === "D" ? "D" : "F";
     return `<tr>
       <td>${r["PPG Ranking"]}</td>
       <td>${r["ESPN Ranking"]}</td>
       <td class="player-col">${escapeHtml(r.Player)}</td>
+      <td class="pos-col">${pos}</td>
       <td>${age}</td>
       <td>${Number(r.PPG).toFixed(2)}</td>
       <td>${Number(r["EWMA PPG"]).toFixed(2)}</td>
@@ -289,6 +300,16 @@ function initSorting() {
   });
 }
 
+function initPositionFilter() {
+  const select = $("positionFilter");
+  if (!select) return;
+  select.value = positionFilter;
+  select.addEventListener("change", () => {
+    positionFilter = select.value;
+    renderGems();
+  });
+}
+
 function normalizeEspnRows(data) {
   const rows = data?.players || (Array.isArray(data) ? data : []);
   const output = [];
@@ -349,10 +370,12 @@ function mergeLiveRankings(rankRows, ageById) {
     .map(r => {
       const old = existing.get(r.Player);
       const age = r.Age ?? ageById.get(Number(r["ESPN ID"])) ?? old?.Age ?? null;
+      const position = old?.Position || positionFromId(r["Default Position ID"]);
       return {
         "PPG Ranking": old?.["PPG Ranking"] ?? 9999,
         "ESPN Ranking": r["ESPN Ranking"],
         Player: r.Player,
+        Position: position,
         Age: age,
         PPG: old?.PPG ?? 0,
         "EWMA PPG": old?.["EWMA PPG"] ?? 0,
@@ -445,6 +468,13 @@ async function init() {
     appData=await res.json();
     initPicker();
     initSorting();
+    initPositionFilter();
+    // Backfill Position for older cached JSON that predates this column.
+    for (const row of appData.gems) {
+      if (row.Position !== "F" && row.Position !== "D") {
+        row.Position = "F";
+      }
+    }
     $("refreshData").addEventListener("click", refreshEspnData);
     $("dataUpdated").textContent = `Cached: ${appData.updated || "unknown"}`;
     $("tableCount").textContent = `${appData.gems.length} skaters`;

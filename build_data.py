@@ -132,6 +132,25 @@ for player in players:
             "gp": int(round(float(player_gp.get(year, 0) or 0))),
         })
 
+def position_label(default_position_id, historical_positions: str = "") -> str:
+    """Map ESPN slot / historical labels to F or D only."""
+    try:
+        pid = int(default_position_id)
+    except (TypeError, ValueError):
+        pid = 0
+    # ESPN hockey: 1=C, 2=LW, 3=RW, 4=D, 5=G
+    if pid == 4:
+        return "D"
+    if pid in (1, 2, 3):
+        return "F"
+    hist = (historical_positions or "").lower()
+    if "defen" in hist or hist.strip() in {"d", "ld", "rd"}:
+        return "D"
+    if any(tok in hist for tok in ("center", "wing", "forward", "c", "lw", "rw", "f")):
+        return "F"
+    return "F"
+
+
 # Attach current PPG and EWMA PPG to every ESPN-ranked player.
 ranked = espn_df.copy()
 ranked["PPG"] = 0.0
@@ -140,8 +159,11 @@ ranked["Position"] = ""
 
 for idx, player in ranked["Player"].items():
     player_rows = stats[stats["Player"].eq(player)].sort_values("Year")
-    ranked.loc[idx, "Position"] = ",".join(
+    historical = ",".join(
         player_rows["Position"].dropna().astype(str).unique()
+    )
+    ranked.loc[idx, "Position"] = position_label(
+        ranked.loc[idx, "Default Position ID"], historical
     )
     ppg_history = player_rows.set_index("Year")["PPG"].reindex(YEARS, fill_value=0.0)
     ranked.loc[idx, "PPG"] = round(float(ppg_history.iloc[-1]), 2)
@@ -160,7 +182,7 @@ ranked["Steal Value"] = ranked["ESPN Ranking"] - ranked["PPG Ranking"]
 ranked = ranked.sort_values(by="Steal Value", ascending=False, kind="mergesort")
 
 ranked_for_json = ranked[
-    ["PPG Ranking", "ESPN Ranking", "Player", "Age", "PPG", "EWMA PPG", "Steal Value"]
+    ["PPG Ranking", "ESPN Ranking", "Player", "Position", "Age", "PPG", "EWMA PPG", "Steal Value"]
 ].copy()
 
 def _json_safe(v):
