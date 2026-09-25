@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fantasy Hockey Draft Board</title>
+  <meta name="description" content="ESPN fantasy hockey draft helper — historical PPG, EWMA projections and ESPN ranking steals.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="hero">
+      <div>
+        <div class="eyebrow">ESPN FANTASY HOCKEY</div>
+        <h1>Draft Board</h1>
+        <p class="subtitle">Find undervalued skaters using historical scoring and ESPN's draft rankings.</p>
+      </div>
+      <div class="badge"><span class="dot"></span> 2026–27 draft data</div>
+    </header>
+
+    <section class="card player-card">
+      <div class="section-heading">
+        <div>
+          <div class="eyebrow">PLAYER LOOKUP</div>
+          <h2>Historical PPG</h2>
+        </div>
+        <div class="micro">2019–2026 · ESPN scoring</div>
+      </div>
+
+      <div class="player-picker">
+        <label for="playerSearch">Player</label>
+        <div class="combobox" id="combobox">
+          <input id="playerSearch" autocomplete="off" role="combobox"
+                 aria-expanded="false" aria-controls="playerOptions"
+                 placeholder="Search a player…" value="David Pastrnak">
+          <button id="clearPlayer" class="clear" aria-label="Clear player" type="button">×</button>
+          <div id="playerOptions" class="options" role="listbox"></div>
+        </div>
+      </div>
+
+      <div class="player-summary">
+        <div>
+          <span class="selected-name" id="selectedName">David Pastrnak</span>
+          <span class="selected-meta" id="selectedMeta"></span>
+        </div>
+        <div class="latest-stat">
+          <span>2026 PPG</span>
+          <strong id="latestPpg">—</strong>
+        </div>
+      </div>
+
+      <div class="chart-wrap player-chart-wrap">
+        <canvas id="historyChart"></canvas>
+      </div>
+    </section>
+
+    <section class="card gems-card">
+      <div class="section-heading table-heading">
+        <div>
+          <div class="eyebrow">DRAFT VALUE</div>
+          <h2>Gems</h2>
+          <p class="hint">Steal Value = ESPN Rank − PPG Rank. Positive numbers mean the player is ranked later by ESPN than by PPG.</p>
+        </div>
+        <div class="table-count" id="tableCount">Loading…</div>
+      </div>
+
+      <div class="table-scroll">
+        <table id="gemsTable">
+          <thead>
+            <tr>
+              <th data-key="PPG Ranking" class="sortable">PPG Ranking <span></span></th>
+              <th data-key="ESPN Ranking" class="sortable">ESPN Ranking <span></span></th>
+              <th data-key="Player" class="sortable player-col">Player <span></span></th>
+              <th data-key="PPG" class="sortable">PPG <span></span></th>
+              <th data-key="EWMA PPG" class="sortable">EWMA PPG <span></span></th>
+              <th data-key="Steal Value" class="sortable active">Steal Value <span class="arrow">↓</span></th>
+            </tr>
+          </thead>
+          <tbody id="gemsBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card projection-card">
+      <div class="section-heading">
+        <div>
+          <div class="eyebrow">AT A GLANCE</div>
+          <h2>Player Projections</h2>
+          <p class="hint">Current PPG compared with ESPN draft position. Goalies are excluded.</p>
+        </div>
+      </div>
+      <div class="chart-wrap projection-wrap">
+        <canvas id="projectionChart"></canvas>
+      </div>
+    </section>
+
+    <footer>
+      <span>Built from ESPN historical scoring data · EWMA α = 0.75</span>
+      <span>Data cached for fast GitHub Pages hosting</span>
+    </footer>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
