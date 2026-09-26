@@ -175,7 +175,7 @@ function renderGems() {
     const cls=sv>0?"steal-positive":sv<0?"steal-negative":"";
     const age = Number.isFinite(Number(r.Age)) ? Number(r.Age) : "—";
     const pos = r.Position === "D" ? "D" : "F";
-    return `<tr>
+    return `<tr class="gems-row" data-name="${escapeHtml(r.Player)}" title="Click to exclude ${escapeHtml(r.Player)}">
       <td>${r["PPG Ranking"]}</td>
       <td>${r["ESPN Ranking"]}</td>
       <td class="player-col">${escapeHtml(r.Player)}</td>
@@ -297,6 +297,13 @@ function initSorting() {
       else { sortKey=key; sortDirection="asc"; }
       renderGems();
     });
+  });
+}
+
+function initGemsRowClick() {
+  $("gemsBody").addEventListener("click", (e) => {
+    const row = e.target.closest("tr.gems-row");
+    if (row?.dataset.name) excludePlayer(row.dataset.name);
   });
 }
 
@@ -468,6 +475,7 @@ async function init() {
     appData=await res.json();
     initPicker();
     initSorting();
+    initGemsRowClick();
     initPositionFilter();
     // Backfill Position for older cached JSON that predates this column.
     for (const row of appData.gems) {
